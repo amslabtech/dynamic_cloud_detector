@@ -1,0 +1,6 @@
+<launch>
+
+    <test pkg="dynamic_cloud_detector" type="dynamic_cloud_detector_test" test-name="dynamic_cloud_detector_test">
+    </test>
+
+</launch>
