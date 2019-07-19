@@ -154,9 +154,6 @@ void DynamicCloudDetector::move_grid_cells(const double rotation, const Eigen::V
         if(-WIDTH_2 <= _x && _x <= WIDTH_2 && -WIDTH_2 <= _y && _y <= WIDTH_2){
             int index = get_index_from_xy(_x, _y);
             if(0 <= index && index < GRID_NUM){
-                if(grid_cells[i].state > 0){
-                    // std::cout << "obs" << std::endl;
-                }
                 _grid_cells[index] = grid_cells[i];
             }
         }
