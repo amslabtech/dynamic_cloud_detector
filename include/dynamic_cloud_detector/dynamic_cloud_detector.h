@@ -70,6 +70,7 @@ private:
     int GRID_WIDTH_2;
     int GRID_NUM;
     double OCCUPANCY_THRESHOLD;
+    int BEAM_NUM;
     static const int UNKNOWN = -1;
     static const int CLEAR = 0;
     static const int OCCUPIED = 100;

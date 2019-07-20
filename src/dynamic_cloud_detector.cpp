@@ -7,6 +7,7 @@ DynamicCloudDetector::DynamicCloudDetector(void)
     local_nh.param("RESOLUTION", RESOLUTION, {0.1});
     local_nh.param("WIDTH", WIDTH, {20.0});
     local_nh.param("OCCUPANCY_THRESHOLD", OCCUPANCY_THRESHOLD, {0.2});
+    local_nh.param("BEAM_NUM", BEAM_NUM, {720});
     GRID_WIDTH = WIDTH / RESOLUTION;
     GRID_NUM = GRID_WIDTH * GRID_WIDTH;
     WIDTH_2 = WIDTH / 2.0;
@@ -25,6 +26,7 @@ DynamicCloudDetector::DynamicCloudDetector(void)
     std::cout << "RESOLUTION: " << RESOLUTION << std::endl;
     std::cout << "WIDTH: " << WIDTH << std::endl;
     std::cout << "OCCUPANCY_THRESHOLD: " << OCCUPANCY_THRESHOLD << std::endl;
+    std::cout << "BEAM_NUM: " << BEAM_NUM << std::endl;
 }
 
 void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_obstacles_cloud, const nav_msgs::OdometryConstPtr& msg_odom)
@@ -108,6 +110,8 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
 void DynamicCloudDetector::input_cloud_to_grid_cells(const CloudXYZIPtr& cloud)
 {
     std::vector<GridCell> _grid_cells(grid_cells);
+
+    // search occupied grid cells
     int count = 0;
     for(const auto& pt : cloud->points){
         if(-WIDTH_2 <= pt.x && pt.x <= WIDTH_2 && -WIDTH_2 <= pt.y && pt.y <= WIDTH_2){
@@ -119,6 +123,33 @@ void DynamicCloudDetector::input_cloud_to_grid_cells(const CloudXYZIPtr& cloud)
         }
     }
     std::cout << count << " obstacles was added" << std::endl;
+
+    // search clear grid cells
+    std::vector<double> beam_list(BEAM_NUM, WIDTH_2);
+    const double BEAM_ANGLE_RESOLUTION = 2.0 * M_PI / (double)BEAM_NUM;
+    for(const auto& pt: cloud->points){
+        double distance = sqrt(pt.x * pt.x + pt.y * pt.y);
+        if(distance < WIDTH_2){
+            double angle = atan2(pt.y, pt.x);
+            int beam_index = (angle + M_PI) / BEAM_ANGLE_RESOLUTION;
+            if(0 <= beam_index && beam_index < BEAM_NUM){
+                if(beam_list[beam_index] > distance){
+                    beam_list[beam_index] = distance;
+                }
+            }
+        }
+    }
+    for(int i=0;i<BEAM_NUM;i++){
+        double angle = i * BEAM_ANGLE_RESOLUTION - M_PI;
+        for(double range=0.0;range<beam_list[i];range+=RESOLUTION){
+            int index = get_index_from_xy(range * cos(angle), range * sin(angle));
+            if(0 <= index && index < GRID_NUM){
+                _grid_cells[index].state = CLEAR;
+            }
+        }
+    }
+
+    // update grid cells
     for(int i=0;i<GRID_NUM;i++){
         grid_cells[i].state = _grid_cells[i].state;
         switch(grid_cells[i].state){
@@ -167,7 +198,7 @@ void DynamicCloudDetector::move_grid_cells(const double rot, const Eigen::Vector
 void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr& dynamic_cloud, CloudXYZIPtr& static_cloud)
 {
     for(const auto& pt : cloud->points){
-        std::cout << pt << std::endl;
+        // std::cout << pt << std::endl;
         if(-WIDTH_2 <= pt.x && pt.x <= WIDTH_2 && -WIDTH_2 <= pt.y && pt.y <= WIDTH_2){
             int index = get_index_from_xy(pt.x, pt.y);
             GridCell gc = grid_cells[index];

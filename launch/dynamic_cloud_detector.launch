@@ -5,11 +5,13 @@
     <arg name="width" default="20.0"/>
     <arg name="resolution" default="0.1"/>
     <arg name="occupancy_threshold" default="0.2"/>
+    <arg name="beam_num" default="720"/>
 
     <node pkg="dynamic_cloud_detector" type="dynamic_cloud_detector" name="dynamic_cloud_detector">
         <param name="WIDTH" value="$(arg width)"/>
         <param name="RESOLUTION" value="$(arg resolution)"/>
         <param name="OCCUPANCY_THRESHOLD" value="$(arg occupancy_threshold)"/>
+        <param name="BEAM_NUM" value="$(arg beam_num)"/>
     </node>
 
 </launch>
