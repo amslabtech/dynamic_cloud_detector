@@ -113,7 +113,7 @@ void DynamicCloudDetector::input_cloud_to_grid_cells(const CloudXYZIPtr& cloud)
         if(-WIDTH_2 <= pt.x && pt.x <= WIDTH_2 && -WIDTH_2 <= pt.y && pt.y <= WIDTH_2){
             int index = get_index_from_xy(pt.x, pt.y);
             if(0 <= index && index < GRID_NUM){
-                _grid_cells[index].state = 100;
+                _grid_cells[index].state = OCCUPIED;
                 count++;
             }
         }
@@ -122,10 +122,10 @@ void DynamicCloudDetector::input_cloud_to_grid_cells(const CloudXYZIPtr& cloud)
     for(int i=0;i<GRID_NUM;i++){
         grid_cells[i].state = _grid_cells[i].state;
         switch(grid_cells[i].state){
-            case 0:
+            case CLEAR:
                 grid_cells[i].clear_count++;
                 break;
-            case 1:
+            case OCCUPIED:
                 grid_cells[i].occupied_count++;
                 break;
         }
@@ -155,9 +155,9 @@ void DynamicCloudDetector::move_grid_cells(const double rot, const Eigen::Vector
             int index = get_index_from_xy(_x, _y);
             if(0 <= index && index < GRID_NUM){
                 _grid_cells[index] = grid_cells[i];
-                if(_grid_cells[index].state > 0){
-                    std::cout << x << ", " << y << " to " << _x << ", " << _y << std::endl;
-                }
+                // if(_grid_cells[index].state > 0){
+                //     std::cout << x << ", " << y << " to " << _x << ", " << _y << std::endl;
+                // }
             }
         }
     }
@@ -167,6 +167,7 @@ void DynamicCloudDetector::move_grid_cells(const double rot, const Eigen::Vector
 void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr& dynamic_cloud, CloudXYZIPtr& static_cloud)
 {
     for(const auto& pt : cloud->points){
+        std::cout << pt << std::endl;
         if(-WIDTH_2 <= pt.x && pt.x <= WIDTH_2 && -WIDTH_2 <= pt.y && pt.y <= WIDTH_2){
             int index = get_index_from_xy(pt.x, pt.y);
             GridCell gc = grid_cells[index];
