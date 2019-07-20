@@ -132,7 +132,7 @@ void DynamicCloudDetector::input_cloud_to_grid_cells(const CloudXYZIPtr& cloud)
     }
 }
 
-void DynamicCloudDetector::move_grid_cells(const double rotation, const Eigen::Vector3d& translation)
+void DynamicCloudDetector::move_grid_cells(const double rot, const Eigen::Vector3d& trans)
 {
     int count = 0;
     for(auto gc : grid_cells){
@@ -147,14 +147,17 @@ void DynamicCloudDetector::move_grid_cells(const double rotation, const Eigen::V
         double x = get_x_from_index(i);
         double y = get_y_from_index(i);
 
-        double _x = x * cos(rotation) - y * sin(rotation) + translation(0);
-        double _y = x * sin(rotation) + y * cos(rotation) + translation(1);
+        double _x = x * cos(rot) - y * sin(rot) + trans(0);
+        double _y = x * sin(rot) + y * cos(rot) + trans(1);
         // std::cout << x << ", " << y << " to " << _x << ", " << _y << std::endl;
 
         if(-WIDTH_2 <= _x && _x <= WIDTH_2 && -WIDTH_2 <= _y && _y <= WIDTH_2){
             int index = get_index_from_xy(_x, _y);
             if(0 <= index && index < GRID_NUM){
                 _grid_cells[index] = grid_cells[i];
+                if(_grid_cells[index].state > 0){
+                    std::cout << x << ", " << y << " to " << _x << ", " << _y << std::endl;
+                }
             }
         }
     }
@@ -188,12 +191,12 @@ int DynamicCloudDetector::get_index_from_xy(const double x, const double y)
 
 int DynamicCloudDetector::get_x_index_from_index(const int index)
 {
-    return int(index % GRID_WIDTH);
+    return index % GRID_WIDTH;
 }
 
 int DynamicCloudDetector::get_y_index_from_index(const int index)
 {
-    return int(index / GRID_WIDTH);
+    return index / GRID_WIDTH;
 }
 
 double DynamicCloudDetector::get_x_from_index(const int index)

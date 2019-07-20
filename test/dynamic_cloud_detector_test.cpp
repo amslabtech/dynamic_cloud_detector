@@ -6,7 +6,28 @@
 
 TEST(TestSuite, test0)
 {
-    EXPECT_NEAR(1.0, 1.0, 0.01);
+    DynamicCloudDetector dcd;
+    const double X = 5;
+    const double Y = 5;
+    int i = dcd.get_index_from_xy(X, Y);
+    EXPECT_EQ(i, 30150);
+    double x = dcd.get_x_from_index(i);
+    EXPECT_EQ(x, X);
+    double y = dcd.get_y_from_index(i);
+    EXPECT_EQ(y, Y);
+}
+
+TEST(TestSuite, test1)
+{
+    DynamicCloudDetector dcd;
+    DynamicCloudDetector::CloudXYZIPtr cloud(new DynamicCloudDetector::CloudXYZI);
+    DynamicCloudDetector::PointXYZI point;
+    point.x = 1;
+    point.y = 1;
+    cloud->points.push_back(point);
+    dcd.input_cloud_to_grid_cells(cloud);
+    Eigen::Vector3d t(0.1, 0.1, 0);
+    dcd.move_grid_cells(0.1, t);
 }
 
 int main(int argc, char** argv)

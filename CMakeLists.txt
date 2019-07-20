@@ -232,5 +232,6 @@ if(CATKIN_ENABLE_TESTING)
   target_link_libraries(dynamic_cloud_detector_test
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
+    libdynamic_cloud_detector
   )
 endif()
