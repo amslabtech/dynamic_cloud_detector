@@ -144,6 +144,7 @@ void DynamicCloudDetector::input_cloud_to_grid_cells(const CloudXYZIPtr& cloud)
             }
         }
     }
+    std::cout << "set clear cells" << std::endl;
     for(int i=0;i<BEAM_NUM;i++){
         double angle = i * BEAM_ANGLE_RESOLUTION - M_PI;
         for(double range=0.0;range<beam_list[i];range+=RESOLUTION){
@@ -159,6 +160,7 @@ void DynamicCloudDetector::input_cloud_to_grid_cells(const CloudXYZIPtr& cloud)
     }
 
     // update grid cells
+    std::cout << "update grid cells" << std::endl;
     for(int i=0;i<GRID_NUM;i++){
         grid_cells[i].state = _grid_cells[i].state;
         switch(grid_cells[i].state){
@@ -186,21 +188,32 @@ void DynamicCloudDetector::move_grid_cells(const double rot, const Eigen::Vector
     }
     std::cout << "obs cell : " << count << std::endl;
 
+    Eigen::Translation<double, 3> _trans(trans(0), trans(1), trans(2));
+    // Eigen::Translation<double, 3> _trans(0, 0, 0);
+    Eigen::Matrix3d _rot;
+    _rot = Eigen::AngleAxisd(rot, Eigen::Vector3d::UnitZ());
+    // _rot = Eigen::AngleAxisd(0, Eigen::Vector3d::UnitZ());
+    Eigen::Affine3d affine = _rot * _trans;
+    std::cout << "affine:\n" << affine.translation() << std::endl;
+
     std::vector<GridCell> _grid_cells(GRID_NUM);
+
     for(int i=0;i<GRID_NUM;i++){
         double x = get_x_from_index(i);
         double y = get_y_from_index(i);
+        Eigen::Vector3d point(x, y, 0);
 
-        double _x = x * cos(rot) - y * sin(rot) + trans(0);
-        double _y = x * sin(rot) + y * cos(rot) + trans(1);
+        point = affine * point;
+        double _x = point(0);
+        double _y = point(1);
         // std::cout << x << ", " << y << " to " << _x << ", " << _y << std::endl;
 
         if(-WIDTH_2 <= _x && _x <= WIDTH_2 && -WIDTH_2 <= _y && _y <= WIDTH_2){
             int index = get_index_from_xy(_x, _y);
             if(0 <= index && index < GRID_NUM){
-                // _grid_cells[index] = grid_cells[i];
-                _grid_cells[index].occupied_count = grid_cells[i].occupied_count;
-                _grid_cells[index].clear_count = grid_cells[i].clear_count;
+                _grid_cells[index] = grid_cells[i];
+                // _grid_cells[index].occupied_count = grid_cells[i].occupied_count;
+                // _grid_cells[index].clear_count = grid_cells[i].clear_count;
                 // if(_grid_cells[index].state > 0){
                 //     std::cout << x << ", " << y << " to " << _x << ", " << _y << std::endl;
                 // }
@@ -212,20 +225,23 @@ void DynamicCloudDetector::move_grid_cells(const double rot, const Eigen::Vector
 
 void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr& dynamic_cloud, CloudXYZIPtr& static_cloud)
 {
+    std::cout << "devide cloud" << std::endl;
     for(const auto& pt : cloud->points){
         // std::cout << pt << std::endl;
         if(-WIDTH_2 <= pt.x && pt.x <= WIDTH_2 && -WIDTH_2 <= pt.y && pt.y <= WIDTH_2){
             int index = get_index_from_xy(pt.x, pt.y);
-            GridCell gc = grid_cells[index];
-            if(gc.clear_count + gc.occupied_count > 0){
-                double occupancy = gc.occupied_count / (double)(gc.clear_count + gc.occupied_count);
-                if(occupancy < OCCUPANCY_THRESHOLD){
-                    dynamic_cloud->points.push_back(pt);
+            if(0 <= index && index < GRID_NUM){
+                GridCell gc = grid_cells[index];
+                if(gc.clear_count + gc.occupied_count > 0){
+                    double occupancy = gc.occupied_count / (double)(gc.clear_count + gc.occupied_count);
+                    if(occupancy < OCCUPANCY_THRESHOLD){
+                        dynamic_cloud->points.push_back(pt);
+                    }else{
+                        static_cloud->points.push_back(pt);
+                    }
                 }else{
-                    static_cloud->points.push_back(pt);
+                        static_cloud->points.push_back(pt);
                 }
-            }else{
-                    static_cloud->points.push_back(pt);
             }
         }
     }
@@ -233,8 +249,8 @@ void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr&
 
 int DynamicCloudDetector::get_index_from_xy(const double x, const double y)
 {
-    int _x = x / RESOLUTION + GRID_WIDTH_2;
-    int _y = y / RESOLUTION + GRID_WIDTH_2;
+    int _x = floor(x / RESOLUTION + GRID_WIDTH_2 + 0.5);
+    int _y = floor(y / RESOLUTION + GRID_WIDTH_2 + 0.5);
     return _y * GRID_WIDTH + _x;
 }
 
