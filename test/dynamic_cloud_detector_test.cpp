@@ -15,6 +15,8 @@ TEST(TestSuite, test0)
     EXPECT_EQ(x, X);
     double y = dcd.get_y_from_index(i);
     EXPECT_EQ(y, Y);
+    int _i = dcd.get_index_from_xy(x, y);
+    EXPECT_EQ(_i, 30150);
 }
 
 TEST(TestSuite, test1)
