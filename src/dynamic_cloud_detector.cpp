@@ -90,13 +90,13 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
         grid.info.origin.position.x = -WIDTH * 0.5;
         grid.info.origin.position.y = -WIDTH * 0.5;
         grid.info.origin.orientation = tf::createQuaternionMsgFromYaw(0);
-        for(const auto& gc : grid_cells){
-            grid.data.push_back(gc.state);
-            // if(gc.occupied_count + gc.clear_count > 0){
-            //     grid.data.push_back(gc.occupied_count / (double)(gc.occupied_count + gc.clear_count));
-            // }else{
-            //     grid.data.push_back(UNKNOWN);
-            // }
+        for(auto gc : grid_cells){
+            // grid.data.push_back(gc.state);
+            if(gc.occupied_count + gc.clear_count > 0){
+                grid.data.push_back(gc.get_occupancy() * 255);
+            }else{
+                grid.data.push_back(UNKNOWN);
+            }
         }
         grid_pub.publish(grid);
     }else{
@@ -162,19 +162,7 @@ void DynamicCloudDetector::input_cloud_to_grid_cells(const CloudXYZIPtr& cloud)
     // update grid cells
     std::cout << "update grid cells" << std::endl;
     for(int i=0;i<GRID_NUM;i++){
-        grid_cells[i].state = _grid_cells[i].state;
-        switch(grid_cells[i].state){
-            case CLEAR:
-                grid_cells[i].clear_count++;
-                break;
-            case OCCUPIED:
-                grid_cells[i].occupied_count++;
-                break;
-            case UNKNOWN:
-                grid_cells[i].clear_count = 0;
-                grid_cells[i].occupied_count = 0;
-                break;
-        }
+        grid_cells[i].update_state(_grid_cells[i].state);
     }
 }
 
@@ -211,9 +199,9 @@ void DynamicCloudDetector::move_grid_cells(const double rot, const Eigen::Vector
         if(-WIDTH_2 <= _x && _x <= WIDTH_2 && -WIDTH_2 <= _y && _y <= WIDTH_2){
             int index = get_index_from_xy(_x, _y);
             if(0 <= index && index < GRID_NUM){
-                _grid_cells[index] = grid_cells[i];
-                // _grid_cells[index].occupied_count = grid_cells[i].occupied_count;
-                // _grid_cells[index].clear_count = grid_cells[i].clear_count;
+                // _grid_cells[index] = grid_cells[i];
+                _grid_cells[index].occupied_count = grid_cells[i].occupied_count;
+                _grid_cells[index].clear_count = grid_cells[i].clear_count;
                 // if(_grid_cells[index].state > 0){
                 //     std::cout << x << ", " << y << " to " << _x << ", " << _y << std::endl;
                 // }
@@ -233,7 +221,7 @@ void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr&
             if(0 <= index && index < GRID_NUM){
                 GridCell gc = grid_cells[index];
                 if(gc.clear_count + gc.occupied_count > 0){
-                    double occupancy = gc.occupied_count / (double)(gc.clear_count + gc.occupied_count);
+                    double occupancy = gc.get_occupancy();
                     if(occupancy < OCCUPANCY_THRESHOLD){
                         dynamic_cloud->points.push_back(pt);
                     }else{
@@ -277,4 +265,27 @@ double DynamicCloudDetector::get_y_from_index(const int index)
 void DynamicCloudDetector::process(void)
 {
     ros::spin();
+}
+
+void DynamicCloudDetector::GridCell::update_state(const int _state)
+{
+    state = _state;
+    switch(_state){
+        case CLEAR:
+            clear_count++;
+            break;
+        case OCCUPIED:
+            occupied_count++;
+            break;
+        // case UNKNOWN:
+        //     clear_count = 0;
+        //     occupied_count = 0;
+        //     break;
+    }
+}
+
+double DynamicCloudDetector::GridCell::get_occupancy(void)
+{
+    double occupancy = occupied_count / (double)(clear_count + occupied_count);
+    return occupancy;
 }

@@ -43,6 +43,10 @@ public:
             occupied_count = 0;
             state = -1;
         }
+
+        void update_state(const int);
+        double get_occupancy(void);
+
         int clear_count;
         int occupied_count;
         int state;// -1: unknown, 0: clear, 100: occupied
