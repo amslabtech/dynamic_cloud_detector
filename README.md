@@ -5,6 +5,8 @@
 ## Overview
 TBW
 
+![demo](gif/dynamic_cloud_detector.gif)
+
 ## Enviornment
 - Ubuntu 16.04 or 18.04
 - ROS Kinetic or Melodic
@@ -34,7 +36,7 @@ catkin_make
 
 #### Subscribed topics
 - /velodyne_obstacles (sensor_msgs/PointCloud2)
-  - point cloud without ground 
+  - point cloud without ground
 - /odom/complement (nav_msgs/Odometry)
   - odometry complemented by IMU. raw odometry or estimated pose is also allowed
 
@@ -50,7 +52,7 @@ catkin_make
 - BUFFER_SIZE
   - this parameter defines the buffer size for point cloud and odometry (default: 5)
 - SKIP_SCAN_FLAG
-  - if this flag is true, this node adds new data to buffer once in twice (default: false)  
+  - if this flag is true, this node adds new data to buffer once in twice (default: false)
 
 ## How to Use
 ```
