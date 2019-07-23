@@ -57,7 +57,6 @@ public:
 
     void callback(const sensor_msgs::PointCloud2ConstPtr&, const nav_msgs::OdometryConstPtr&);
     void input_cloud_to_grid_cells(const std::vector<CloudXYZIPtr>&, const std::vector<std::vector<double> >&, const std::vector<Eigen::Vector3d>&, std::vector<double>&);
-    void move_grid_cells(const double, const Eigen::Vector3d&);
     void devide_cloud(const CloudXYZIPtr&, CloudXYZIPtr&, CloudXYZIPtr&);
     void get_beam_list(const CloudXYZIPtr&, std::vector<double>&);
     int get_index_from_xy(const double, const double);

@@ -187,51 +187,6 @@ void DynamicCloudDetector::input_cloud_to_grid_cells(const std::vector<CloudXYZI
     }
 }
 
-void DynamicCloudDetector::move_grid_cells(const double rot, const Eigen::Vector3d& trans)
-{
-    int count = 0;
-    for(auto gc : grid_cells){
-        if(gc.state > 0){
-            count++;
-        }
-    }
-    std::cout << "obs cell : " << count << std::endl;
-
-    Eigen::Translation<double, 3> _trans(trans(0), trans(1), trans(2));
-    // Eigen::Translation<double, 3> _trans(0, 0, 0);
-    Eigen::Matrix3d _rot;
-    _rot = Eigen::AngleAxisd(rot, Eigen::Vector3d::UnitZ());
-    // _rot = Eigen::AngleAxisd(0, Eigen::Vector3d::UnitZ());
-    Eigen::Affine3d affine = _rot * _trans;
-    std::cout << "affine:\n" << affine.translation() << std::endl;
-
-    std::vector<GridCell> _grid_cells(GRID_NUM);
-
-    for(int i=0;i<GRID_NUM;i++){
-        double x = get_x_from_index(i);
-        double y = get_y_from_index(i);
-        Eigen::Vector3d point(x, y, 0);
-
-        point = affine * point;
-        double _x = point(0);
-        double _y = point(1);
-        // std::cout << x << ", " << y << " to " << _x << ", " << _y << std::endl;
-
-        if(-WIDTH_2 <= _x && _x <= WIDTH_2 && -WIDTH_2 <= _y && _y <= WIDTH_2){
-            int index = get_index_from_xy(_x, _y);
-            if(0 <= index && index < GRID_NUM){
-                // _grid_cells[index] = grid_cells[i];
-                _grid_cells[index].occupied_count = grid_cells[i].occupied_count;
-                _grid_cells[index].clear_count = grid_cells[i].clear_count;
-                // if(_grid_cells[index].state > 0){
-                //     std::cout << x << ", " << y << " to " << _x << ", " << _y << std::endl;
-                // }
-            }
-        }
-    }
-    grid_cells = _grid_cells;
-}
-
 void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr& dynamic_cloud, CloudXYZIPtr& static_cloud)
 {
     std::cout << "devide cloud" << std::endl;

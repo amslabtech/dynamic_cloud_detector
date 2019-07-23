@@ -19,33 +19,6 @@ TEST(TestSuite, test0)
     EXPECT_EQ(_i, 30150);
 }
 
-TEST(TestSuite, test1)
-{
-    DynamicCloudDetector dcd;
-    DynamicCloudDetector::CloudXYZIPtr cloud(new DynamicCloudDetector::CloudXYZI);
-    DynamicCloudDetector::PointXYZI point;
-    point.x = 1;
-    point.y = 1;
-    cloud->points.push_back(point);
-    dcd.input_cloud_to_grid_cells(cloud);
-    Eigen::Vector3d t(0.1, 0.1, 0);
-    dcd.move_grid_cells(0.1, t);
-    point.x = 0.995171;
-    point.y = 1.19484;
-    cloud->points.push_back(point);
-    DynamicCloudDetector::CloudXYZIPtr d_cloud(new DynamicCloudDetector::CloudXYZI);
-    DynamicCloudDetector::CloudXYZIPtr s_cloud(new DynamicCloudDetector::CloudXYZI);
-    dcd.devide_cloud(cloud, d_cloud, s_cloud);
-    std::cout << "dynamic" << std::endl;
-    for(auto pt : d_cloud->points){
-        std::cout << pt << std::endl;
-    }
-    std::cout << "static" << std::endl;
-    for(auto pt : s_cloud->points){
-        std::cout << pt << std::endl;
-    }
-}
-
 int main(int argc, char** argv)
 {
     testing::InitGoogleTest(&argc, argv);
