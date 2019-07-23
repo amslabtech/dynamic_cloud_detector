@@ -67,6 +67,10 @@ public:
     void process(void);
 
 private:
+    static const int UNKNOWN = -1;
+    static const int CLEAR = 0;
+    static const int OCCUPIED = 100;
+
     double RESOLUTION;
     double WIDTH;
     double WIDTH_2;
@@ -76,9 +80,7 @@ private:
     double OCCUPANCY_THRESHOLD;
     int BEAM_NUM;
     int BUFFER_SIZE;
-    static const int UNKNOWN = -1;
-    static const int CLEAR = 0;
-    static const int OCCUPIED = 100;
+    bool SKIP_SCAN_FLAG;
 
     ros::NodeHandle nh;
     ros::NodeHandle local_nh;

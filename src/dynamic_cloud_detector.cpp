@@ -9,6 +9,7 @@ DynamicCloudDetector::DynamicCloudDetector(void)
     local_nh.param("OCCUPANCY_THRESHOLD", OCCUPANCY_THRESHOLD, {0.2});
     local_nh.param("BEAM_NUM", BEAM_NUM, {720});
     local_nh.param("BUFFER_SIZE", BUFFER_SIZE, {5});
+    local_nh.param("SKIP_SCAN_FLAG", SKIP_SCAN_FLAG, {false});
 
     GRID_WIDTH = WIDTH / RESOLUTION;
     GRID_NUM = GRID_WIDTH * GRID_WIDTH;
@@ -35,6 +36,7 @@ DynamicCloudDetector::DynamicCloudDetector(void)
     std::cout << "OCCUPANCY_THRESHOLD: " << OCCUPANCY_THRESHOLD << std::endl;
     std::cout << "BEAM_NUM: " << BEAM_NUM << std::endl;
     std::cout << "BUFFER_SIZE: " << BUFFER_SIZE << std::endl;
+    std::cout << "SKIP_SCAN_FLAG: " << SKIP_SCAN_FLAG << std::endl;
 }
 
 void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_obstacles_cloud, const nav_msgs::OdometryConstPtr& msg_odom)
@@ -47,7 +49,16 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
     std::cout << "current_position: " << current_position.transpose() << std::endl;
     std::cout << "current_yaw: " << current_yaw << std::endl;
 
-    if(!first_flag){
+    static bool skip_scan_flag = false;
+    if(SKIP_SCAN_FLAG){
+        if(skip_scan_flag){
+            skip_scan_flag = false;
+        }else{
+            skip_scan_flag = true;
+        }
+    }
+
+    if(!first_flag && !skip_scan_flag){
         CloudXYZIPtr obstacles_cloud(new CloudXYZI);
         pcl::fromROSMsg(*msg_obstacles_cloud, *obstacles_cloud);
         int cloud_size = obstacles_cloud->points.size();
