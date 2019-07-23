@@ -56,9 +56,10 @@ public:
     DynamicCloudDetector(void);
 
     void callback(const sensor_msgs::PointCloud2ConstPtr&, const nav_msgs::OdometryConstPtr&);
-    void input_cloud_to_grid_cells(const CloudXYZIPtr&);
+    void input_cloud_to_grid_cells(const std::vector<CloudXYZIPtr>&, const std::vector<std::vector<double> >&, const std::vector<Eigen::Vector3d>&, std::vector<double>&);
     void move_grid_cells(const double, const Eigen::Vector3d&);
     void devide_cloud(const CloudXYZIPtr&, CloudXYZIPtr&, CloudXYZIPtr&);
+    void get_beam_list(const CloudXYZIPtr&, std::vector<double>&);
     int get_index_from_xy(const double, const double);
     int get_x_index_from_index(const int);
     int get_y_index_from_index(const int);
@@ -75,6 +76,7 @@ private:
     int GRID_NUM;
     double OCCUPANCY_THRESHOLD;
     int BEAM_NUM;
+    int BUFFER_SIZE;
     static const int UNKNOWN = -1;
     static const int CLEAR = 0;
     static const int OCCUPIED = 100;
@@ -92,6 +94,10 @@ private:
 
     std::vector<GridCell> grid_cells;
     bool first_flag;
+    std::vector<CloudXYZIPtr> cloud_buffer;
+    std::vector<std::vector<double> > beam_buffer;
+    std::vector<Eigen::Vector3d> position_buffer;
+    std::vector<double> yaw_buffer;
 };
 
 #endif// __DYNAMIC_CLOUD_DETECTOR_H

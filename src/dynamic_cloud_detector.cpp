@@ -8,6 +8,8 @@ DynamicCloudDetector::DynamicCloudDetector(void)
     local_nh.param("WIDTH", WIDTH, {20.0});
     local_nh.param("OCCUPANCY_THRESHOLD", OCCUPANCY_THRESHOLD, {0.2});
     local_nh.param("BEAM_NUM", BEAM_NUM, {720});
+    local_nh.param("BUFFER_SIZE", BUFFER_SIZE, {5});
+
     GRID_WIDTH = WIDTH / RESOLUTION;
     GRID_NUM = GRID_WIDTH * GRID_WIDTH;
     WIDTH_2 = WIDTH / 2.0;
@@ -15,6 +17,11 @@ DynamicCloudDetector::DynamicCloudDetector(void)
 
     grid_cells.resize(GRID_NUM);
     first_flag = true;
+
+    cloud_buffer.reserve(BUFFER_SIZE + 1);
+    beam_buffer.reserve(BUFFER_SIZE + 1);
+    position_buffer.reserve(BUFFER_SIZE + 1);
+    yaw_buffer.reserve(BUFFER_SIZE + 1);
 
     dynamic_pub = nh.advertise<sensor_msgs::PointCloud2>("/cloud/dynamic", 1);
     static_pub = nh.advertise<sensor_msgs::PointCloud2>("/cloud/static", 1);
@@ -27,6 +34,7 @@ DynamicCloudDetector::DynamicCloudDetector(void)
     std::cout << "WIDTH: " << WIDTH << std::endl;
     std::cout << "OCCUPANCY_THRESHOLD: " << OCCUPANCY_THRESHOLD << std::endl;
     std::cout << "BEAM_NUM: " << BEAM_NUM << std::endl;
+    std::cout << "BUFFER_SIZE: " << BUFFER_SIZE << std::endl;
 }
 
 void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_obstacles_cloud, const nav_msgs::OdometryConstPtr& msg_odom)
@@ -38,32 +46,28 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
     double current_yaw = tf::getYaw(msg_odom->pose.pose.orientation);
     std::cout << "current_position: " << current_position.transpose() << std::endl;
     std::cout << "current_yaw: " << current_yaw << std::endl;
-    static Eigen::Vector3d last_position;
-    static double last_yaw;
-    std::cout << "last_position: " << last_position.transpose() << std::endl;
-    std::cout << "last_yaw: " << last_yaw << std::endl;
-    CloudXYZIPtr obstacles_cloud(new CloudXYZI);
-    pcl::fromROSMsg(*msg_obstacles_cloud, *obstacles_cloud);
-    int cloud_size = obstacles_cloud->points.size();
-    std::cout << "cloud size: " <<  cloud_size << std::endl;
 
     if(!first_flag){
-        double d_yaw = current_yaw - last_yaw;
-        d_yaw = atan2(sin(d_yaw), cos(d_yaw));
+        CloudXYZIPtr obstacles_cloud(new CloudXYZI);
+        pcl::fromROSMsg(*msg_obstacles_cloud, *obstacles_cloud);
+        int cloud_size = obstacles_cloud->points.size();
+        std::cout << "cloud size: " <<  cloud_size << std::endl;
 
-        Eigen::Matrix3d last_yaw_rotation;
-        last_yaw_rotation = Eigen::AngleAxisd(-last_yaw, Eigen::Vector3d::UnitZ());
-        Eigen::Vector3d _current_position = last_yaw_rotation * current_position;
-        Eigen::Vector3d _last_position = last_yaw_rotation * last_position;
-        Eigen::Vector3d dp = _current_position - _last_position;
-        std::cout << "dp: " << dp.transpose() << std::endl;
-        std::cout << "dyaw: " << d_yaw << "[rad]" << std::endl;
+        std::vector<double> beam_list;
+        get_beam_list(obstacles_cloud, beam_list);
 
-        std::cout << "move grid cells" << std::endl;
-        move_grid_cells(-d_yaw, -dp);
+        cloud_buffer.push_back(obstacles_cloud);
+        beam_buffer.push_back(beam_list);
+        position_buffer.push_back(current_position);
+        yaw_buffer.push_back(current_yaw);
+        if(cloud_buffer.size() > BUFFER_SIZE){
+            cloud_buffer.erase(cloud_buffer.begin());
+            beam_buffer.erase(beam_buffer.begin());
+            position_buffer.erase(position_buffer.begin());
+            yaw_buffer.erase(yaw_buffer.begin());
+        }
 
-        std::cout << "cloud to grid cells" << std::endl;
-        input_cloud_to_grid_cells(obstacles_cloud);
+        input_cloud_to_grid_cells(cloud_buffer, beam_buffer, position_buffer, yaw_buffer);
 
         CloudXYZIPtr dynamic_cloud(new CloudXYZI);
         dynamic_cloud->header = obstacles_cloud->header;
@@ -93,7 +97,7 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
         for(auto gc : grid_cells){
             // grid.data.push_back(gc.state);
             if(gc.occupied_count + gc.clear_count > 0){
-                grid.data.push_back(gc.get_occupancy() * 255);
+                grid.data.push_back(gc.get_occupancy() * 100);
             }else{
                 grid.data.push_back(UNKNOWN);
             }
@@ -101,68 +105,85 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
         grid_pub.publish(grid);
     }else{
         first_flag = false;
-        std::cout << "cloud to grid cells" << std::endl;
-        input_cloud_to_grid_cells(obstacles_cloud);
-        last_position = current_position;
-        last_yaw = current_yaw;
     }
-    last_position = current_position;
-    last_yaw = current_yaw;
 
     std::cout << "time: " << ros::Time::now().toSec() - start << "[s]" << std::endl;
 }
 
-void DynamicCloudDetector::input_cloud_to_grid_cells(const CloudXYZIPtr& cloud)
+void DynamicCloudDetector::input_cloud_to_grid_cells(const std::vector<CloudXYZIPtr>& _cloud_buffer, const std::vector<std::vector<double> >& _beam_buffer, const std::vector<Eigen::Vector3d>& _position_buffer, std::vector<double>& _yaw_buffer)
 {
-    std::vector<GridCell> _grid_cells(grid_cells);
+    // reset
+    grid_cells = std::vector<GridCell>(GRID_NUM);
 
-    // search occupied grid cells
-    int count = 0;
-    for(const auto& pt : cloud->points){
-        if(-WIDTH_2 <= pt.x && pt.x <= WIDTH_2 && -WIDTH_2 <= pt.y && pt.y <= WIDTH_2){
-            int index = get_index_from_xy(pt.x, pt.y);
-            if(0 <= index && index < GRID_NUM){
-                _grid_cells[index].state = OCCUPIED;
-                count++;
-            }
-        }
-    }
-    std::cout << count << " obstacles was added" << std::endl;
+    int buffer_size = _cloud_buffer.size();
+    Eigen::Vector3d current_position = position_buffer.back();
+    double current_yaw = yaw_buffer.back();
 
-    // search clear grid cells
-    std::vector<double> beam_list(BEAM_NUM, WIDTH);
-    const double BEAM_ANGLE_RESOLUTION = 2.0 * M_PI / (double)BEAM_NUM;
-    for(const auto& pt: cloud->points){
-        double distance = sqrt(pt.x * pt.x + pt.y * pt.y);
-        if(-WIDTH_2 <= pt.x && pt.x <= WIDTH_2 && -WIDTH_2 <= pt.y && pt.y <= WIDTH_2){
-            double angle = atan2(pt.y, pt.x);
-            int beam_index = (angle + M_PI) / BEAM_ANGLE_RESOLUTION;
-            if(0 <= beam_index && beam_index < BEAM_NUM){
-                if(beam_list[beam_index] > distance){
-                    beam_list[beam_index] = distance;
-                }
-            }
-        }
-    }
-    std::cout << "set clear cells" << std::endl;
-    for(int i=0;i<BEAM_NUM;i++){
-        double angle = i * BEAM_ANGLE_RESOLUTION - M_PI;
-        for(double range=0.0;range<beam_list[i];range+=RESOLUTION){
-            double x = range * cos(angle);
-            double y = range * sin(angle);
-            if(-WIDTH_2 <= x && x <= WIDTH_2 && -WIDTH_2 <= y && y <= WIDTH_2){
-                int index = get_index_from_xy(x, y);
+    std::cout << "buffer size: " << buffer_size << std::endl;
+
+    for(int i=0;i<buffer_size;i++){
+        std::cout << "buffer t-" << fabs(i - buffer_size + 1) << std::endl;
+        std::vector<int> states(GRID_NUM, UNKNOWN);
+
+        double d_yaw = current_yaw - yaw_buffer[i];
+        d_yaw = atan2(sin(d_yaw), cos(d_yaw));
+
+        Eigen::Matrix3d last_yaw_rotation;
+        last_yaw_rotation = Eigen::AngleAxisd(-yaw_buffer[i], Eigen::Vector3d::UnitZ());
+        Eigen::Vector3d _current_position = last_yaw_rotation * current_position;
+        Eigen::Vector3d _last_position = last_yaw_rotation * position_buffer[i];
+        Eigen::Vector3d dp = _current_position - _last_position;
+        std::cout << "dp: " << dp.transpose() << std::endl;
+        std::cout << "dyaw: " << d_yaw << "[rad]" << std::endl;
+
+        Eigen::Translation<double, 3> _trans(-dp(0), -dp(1), -dp(2));
+        Eigen::Matrix3d _rot;
+        _rot = Eigen::AngleAxisd(-d_yaw, Eigen::Vector3d::UnitZ());
+        Eigen::Affine3d affine = _rot * _trans;
+        //std::cout << "affine:\n" << affine.translation() << std::endl;
+
+        CloudXYZIPtr transformed_cloud(new CloudXYZI);
+        pcl::transformPointCloud(*_cloud_buffer[i], *transformed_cloud, affine);
+
+        // search occupied grid cells
+        int count = 0;
+        for(const auto& pt : transformed_cloud->points){
+            if(-WIDTH_2 <= pt.x && pt.x <= WIDTH_2 && -WIDTH_2 <= pt.y && pt.y <= WIDTH_2){
+                int index = get_index_from_xy(pt.x, pt.y);
                 if(0 <= index && index < GRID_NUM){
-                    _grid_cells[index].state = CLEAR;
+                    states[index] = OCCUPIED;
+                    count++;
                 }
             }
         }
-    }
+        std::cout << count << " obstacle grid cells were added" << std::endl;
 
-    // update grid cells
-    std::cout << "update grid cells" << std::endl;
-    for(int i=0;i<GRID_NUM;i++){
-        grid_cells[i].update_state(_grid_cells[i].state);
+        // search clear grid cells
+        std::cout << "set clear cells" << std::endl;
+        count = 0;
+        const double BEAM_ANGLE_RESOLUTION = 2.0 * M_PI / (double)BEAM_NUM;
+        for(int j=0;j<BEAM_NUM;j++){
+            double angle = j * BEAM_ANGLE_RESOLUTION - M_PI - d_yaw;
+            angle = atan2(sin(angle), cos(angle));
+            for(double range=0.0;range<beam_buffer[i][j];range+=RESOLUTION){
+                double x = range * cos(angle) - dp(0);
+                double y = range * sin(angle) - dp(1);
+                if(-WIDTH_2 <= x && x <= WIDTH_2 && -WIDTH_2 <= y && y <= WIDTH_2){
+                    int index = get_index_from_xy(x, y);
+                    if(0 <= index && index < GRID_NUM){
+                        states[index] = CLEAR;
+                        count++;
+                    }
+                }
+            }
+        }
+        std::cout << count << " clear grid cells were added" << std::endl;
+
+        // update grid cells
+        std::cout << "update grid cells" << std::endl;
+        for(int j=0;j<GRID_NUM;j++){
+            grid_cells[j].update_state(states[j]);
+        }
     }
 }
 
@@ -229,6 +250,24 @@ void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr&
                     }
                 }else{
                         static_cloud->points.push_back(pt);
+                }
+            }
+        }
+    }
+}
+
+void DynamicCloudDetector::get_beam_list(const CloudXYZIPtr& input_cloud, std::vector<double>& _beam_list)
+{
+    _beam_list = std::vector<double>(BEAM_NUM, WIDTH);
+    const double BEAM_ANGLE_RESOLUTION = 2.0 * M_PI / (double)BEAM_NUM;
+    for(const auto& pt: input_cloud->points){
+        double distance = sqrt(pt.x * pt.x + pt.y * pt.y);
+        if(-WIDTH_2 <= pt.x && pt.x <= WIDTH_2 && -WIDTH_2 <= pt.y && pt.y <= WIDTH_2){
+            double angle = atan2(pt.y, pt.x);
+            int beam_index = (angle + M_PI) / BEAM_ANGLE_RESOLUTION;
+            if(0 <= beam_index && beam_index < BEAM_NUM){
+                if(_beam_list[beam_index] > distance){
+                    _beam_list[beam_index] = distance;
                 }
             }
         }
