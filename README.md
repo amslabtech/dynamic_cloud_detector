@@ -44,7 +44,7 @@ catkin_make
 - RESOLUTION
   - resolution of occupancy grid map (default: 0.1[m])
 - WIDTH
-  - widht and height of occupancy grid map (default: 20[m])
+  - width and height of occupancy grid map (default: 20[m])
 - OCCUPANCY_THRESHOLD
   - the grid cell whose occupancy is lower than this threshold is considered as dynamic (default: 0.2)
 - BEAM_NUM
