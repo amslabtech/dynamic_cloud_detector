@@ -4,11 +4,11 @@ DynamicCloudDetector::DynamicCloudDetector(void)
 :local_nh("~"), obstacles_cloud_sub(nh, "/velodyne_obstacles", 10), odom_sub(nh, "/odom/complement", 10)
 , sync(sync_subs(10), obstacles_cloud_sub, odom_sub)
 {
-    local_nh.param("RESOLUTION", RESOLUTION, {0.1});
-    local_nh.param("WIDTH", WIDTH, {20.0});
+    local_nh.param("RESOLUTION", RESOLUTION, {0.25});
+    local_nh.param("WIDTH", WIDTH, {40.0});
     local_nh.param("OCCUPANCY_THRESHOLD", OCCUPANCY_THRESHOLD, {0.2});
     local_nh.param("BEAM_NUM", BEAM_NUM, {720});
-    local_nh.param("BUFFER_SIZE", BUFFER_SIZE, {5});
+    local_nh.param("BUFFER_SIZE", BUFFER_SIZE, {40});
     local_nh.param("SKIP_SCAN_FLAG", SKIP_SCAN_FLAG, {false});
 
     GRID_WIDTH = WIDTH / RESOLUTION;

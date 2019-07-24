@@ -42,15 +42,15 @@ catkin_make
 
 #### Parameters
 - RESOLUTION
-  - resolution of occupancy grid map (default: 0.1[m])
+  - resolution of occupancy grid map (default: 0.25[m])
 - WIDTH
-  - width and height of occupancy grid map (default: 20[m])
+  - widht and height of occupancy grid map (default: 40[m])
 - OCCUPANCY_THRESHOLD
   - the grid cell whose occupancy is lower than this threshold is considered as dynamic (default: 0.2)
 - BEAM_NUM
   - this node uses beam model for searching free space (default: 720)
 - BUFFER_SIZE
-  - this parameter defines the buffer size for point cloud and odometry (default: 5)
+  - this parameter defines the buffer size for point cloud and odometry (default: 40)
 - SKIP_SCAN_FLAG
   - if this flag is true, this node adds new data to buffer once in twice (default: false)
 
