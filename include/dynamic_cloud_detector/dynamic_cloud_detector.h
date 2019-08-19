@@ -84,6 +84,7 @@ private:
 
     ros::NodeHandle nh;
     ros::NodeHandle local_nh;
+    tf::TransformListener listener;
 
     ros::Publisher dynamic_pub;
     ros::Publisher static_pub;

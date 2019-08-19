@@ -10,13 +10,13 @@ TEST(TestSuite, test0)
     const double X = 5;
     const double Y = 5;
     int i = dcd.get_index_from_xy(X, Y);
-    EXPECT_EQ(i, 30150);
+    EXPECT_EQ(i, 16100);
     double x = dcd.get_x_from_index(i);
     EXPECT_EQ(x, X);
     double y = dcd.get_y_from_index(i);
     EXPECT_EQ(y, Y);
     int _i = dcd.get_index_from_xy(x, y);
-    EXPECT_EQ(_i, 30150);
+    EXPECT_EQ(_i, 16100);
 }
 
 int main(int argc, char** argv)
