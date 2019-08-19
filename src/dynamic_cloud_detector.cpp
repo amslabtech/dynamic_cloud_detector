@@ -49,6 +49,21 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
     std::cout << "current_position: " << current_position.transpose() << std::endl;
     std::cout << "current_yaw: " << current_yaw << std::endl;
 
+    Eigen::Affine3d affine_transform;
+    bool transformed_flag = false;
+    try{
+        tf::StampedTransform stamped_transform;
+        listener.lookupTransform(msg_obstacles_cloud->header.frame_id, "base_link", ros::Time(0), stamped_transform);
+        Eigen::Translation<double, 3> t(stamped_transform.getOrigin().x(), stamped_transform.getOrigin().y(), stamped_transform.getOrigin().z());
+        Eigen::Quaterniond q(stamped_transform.getRotation().w(), stamped_transform.getRotation().x(), stamped_transform.getRotation().y(), stamped_transform.getRotation().z());
+        affine_transform = q * t;
+        transformed_flag = true;
+        std::cout << affine_transform.translation() << std::endl;
+        std::cout << affine_transform.rotation() << std::endl;
+    }catch(tf::TransformException ex){
+        std::cout << ex.what() << std::endl;
+    }
+
     static bool skip_scan_flag = false;
     if(SKIP_SCAN_FLAG){
         if(skip_scan_flag){
@@ -58,9 +73,10 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
         }
     }
 
-    if(!first_flag && !skip_scan_flag){
+    if(!first_flag && !skip_scan_flag && transformed_flag){
         CloudXYZIPtr obstacles_cloud(new CloudXYZI);
         pcl::fromROSMsg(*msg_obstacles_cloud, *obstacles_cloud);
+        pcl::transformPointCloud(*obstacles_cloud, *obstacles_cloud, affine_transform);
         int cloud_size = obstacles_cloud->points.size();
         std::cout << "cloud size: " <<  cloud_size << std::endl;
 
