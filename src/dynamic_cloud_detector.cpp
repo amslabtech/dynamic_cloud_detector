@@ -201,9 +201,12 @@ void DynamicCloudDetector::input_cloud_to_grid_cells(const std::vector<CloudXYZI
                 if(-WIDTH_2 <= x && x <= WIDTH_2 && -WIDTH_2 <= y && y <= WIDTH_2){
                     int index = get_index_from_xy(x, y);
                     if(0 <= index && index < GRID_NUM){
-                        if(states[index] == OCCUPIED) break;
-                        states[index] = CLEAR;
-                        count++;
+                        if(states[index] != OCCUPIED){
+                            states[index] = CLEAR;
+                            count++;
+                        }else{
+                            break;
+                        }
                     }
                 }
             }
@@ -230,10 +233,10 @@ void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr&
                     double occupancy = gc.get_occupancy();
                     if(occupancy < OCCUPANCY_THRESHOLD){
                         dynamic_cloud->points.push_back(pt);
-                    }/*else{
+                    }else{
                         static_cloud->points.push_back(pt);
-                    }*/
-                } 
+                    }
+                }
             }
         }
     }
