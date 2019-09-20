@@ -82,12 +82,13 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
 
         std::vector<double> beam_list;
         get_beam_list(obstacles_cloud, beam_list);
+        std::cout << "beam_list length: " << beam_list.size() << std::endl;
 
         cloud_buffer.push_back(obstacles_cloud);
         beam_buffer.push_back(beam_list);
         position_buffer.push_back(current_position);
         yaw_buffer.push_back(current_yaw);
-        if(cloud_buffer.size() > BUFFER_SIZE){
+        if(cloud_buffer.size() > (unsigned int)BUFFER_SIZE){
             cloud_buffer.erase(cloud_buffer.begin());
             beam_buffer.erase(beam_buffer.begin());
             position_buffer.erase(position_buffer.begin());
@@ -192,12 +193,15 @@ void DynamicCloudDetector::input_cloud_to_grid_cells(const std::vector<CloudXYZI
         for(int j=0;j<BEAM_NUM;j++){
             double angle = j * BEAM_ANGLE_RESOLUTION - M_PI - d_yaw;
             angle = atan2(sin(angle), cos(angle));
+            double cos_angle = cos(angle);
+            double sin_angle = sin(angle);
             for(double range=0.0;range<beam_buffer[i][j];range+=RESOLUTION){
-                double x = range * cos(angle) - dp(0);
-                double y = range * sin(angle) - dp(1);
+                double x = range * cos_angle - dp(0);
+                double y = range * sin_angle - dp(1);
                 if(-WIDTH_2 <= x && x <= WIDTH_2 && -WIDTH_2 <= y && y <= WIDTH_2){
                     int index = get_index_from_xy(x, y);
                     if(0 <= index && index < GRID_NUM){
+                        if(states[index] == OCCUPIED) break;
                         states[index] = CLEAR;
                         count++;
                     }
@@ -218,7 +222,6 @@ void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr&
 {
     std::cout << "devide cloud" << std::endl;
     for(const auto& pt : cloud->points){
-        // std::cout << pt << std::endl;
         if(-WIDTH_2 <= pt.x && pt.x <= WIDTH_2 && -WIDTH_2 <= pt.y && pt.y <= WIDTH_2){
             int index = get_index_from_xy(pt.x, pt.y);
             if(0 <= index && index < GRID_NUM){
@@ -227,12 +230,10 @@ void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr&
                     double occupancy = gc.get_occupancy();
                     if(occupancy < OCCUPANCY_THRESHOLD){
                         dynamic_cloud->points.push_back(pt);
-                    }else{
+                    }/*else{
                         static_cloud->points.push_back(pt);
-                    }
-                }else{
-                        static_cloud->points.push_back(pt);
-                }
+                    }*/
+                } 
             }
         }
     }
