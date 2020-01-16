@@ -39,11 +39,7 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
 
     std::cout << "--- callback ---" << std::endl;
     CloudXYZIPtr cloud_ptr(new CloudXYZI);
-    static bool first = true;
-    if(first){
     pcl::fromROSMsg(*msg_obstacles_cloud, *cloud_ptr);
-    first = false;
-    }
 
     std::cout << "received cloud size: " << cloud_ptr->points.size() << std::endl;
 
@@ -171,25 +167,62 @@ void DynamicCloudDetector::transform_occupancy_grid_map(const Eigen::Vector2d& t
 
     std::cout << "scrolling\n\tdx: " << dx << ", dy: " << dy << ", cos(theta): " << c_yaw << ", sin(theta)" << s_yaw << std::endl;
 
+    const double dx_grid = dx / RESOLUTION;
+    const double dy_grid = dy / RESOLUTION;
+    std::cout << "dx_grid: " << dx_grid << std::endl;
+    std::cout << "dy_grid: " << dy_grid << std::endl;
+
+    Eigen::Matrix3d affine;
+    affine << c_yaw, -s_yaw, dx_grid,
+              s_yaw,  c_yaw, dy_grid,
+                  0,      0,        1;
+    std::cout << "forward affine:\n" << affine << std::endl;
+    Eigen::Matrix3d affine_inverse = affine.inverse();
+    std::cout << "reversed affine:\n" << affine_inverse << std::endl;
+
     OccupancyGridMap ogm(GRID_NUM);
     for(int i=0;i<GRID_NUM;i++){
         if(i == GRID_NUM * 0.5)
             std::cout << "i: " << i << std::endl;
-        double x = get_x_from_index(i);
-        double y = get_y_from_index(i);
+        double x_i = get_x_index_from_index(i) - GRID_WIDTH_2;
+        double y_i = get_y_index_from_index(i) - GRID_WIDTH_2;
+        Eigen::Vector3d ogm_i(x_i, y_i, 1);
         if(i == GRID_NUM * 0.5)
-            std::cout << x << ", " << y <<std::endl;
-        x = x * c_yaw - y * s_yaw + dx;
-        y = x * s_yaw + y * c_yaw + dy;
+            std::cout << "ogm_i.transpose(): " << ogm_i.transpose() << std::endl;
         if(i == GRID_NUM * 0.5)
-            std::cout << x << ", " << y <<std::endl;
-        if(is_valid_point(x, y)){
-            int transformed_index = get_index_from_xy(x, y);
-            // std::cout << transformed_index << std::endl;
-            if(0 <= transformed_index && transformed_index < GRID_NUM){
-                ogm[transformed_index] = map[i];
-            }
+            std::cout << x_i * RESOLUTION << ", " << y_i * RESOLUTION << std::endl;
+        Eigen::Vector3d map_i = affine_inverse * ogm_i;
+        if(i == GRID_NUM * 0.5)
+            std::cout << "map_i.transpose(): " << map_i.transpose() << std::endl;
+        if(map_i(0) < -GRID_WIDTH_2 || GRID_WIDTH_2 <= map_i(0)){
+            continue;
         }
+        if(map_i(1) < -GRID_WIDTH_2 || GRID_WIDTH_2 <= map_i(1)){
+            continue;
+        }
+        if(i == GRID_NUM * 0.5)
+            std::cout << map_i(0) * RESOLUTION << ", " << map_i(1) * RESOLUTION << std::endl;
+
+        // bilinear interpolation
+        int x_0 = std::floor(map_i(0));
+        int x_1 = x_0 + 1;
+        int y_0 = std::floor(map_i(1));
+        int y_1 = y_0 + 1;
+        int index_0_0 = (y_0 + GRID_WIDTH_2) * GRID_WIDTH + x_0 + GRID_WIDTH_2;
+        int index_0_1 = (y_1 + GRID_WIDTH_2) * GRID_WIDTH + x_0 + GRID_WIDTH_2;
+        int index_1_0 = (y_0 + GRID_WIDTH_2) * GRID_WIDTH + x_1 + GRID_WIDTH_2;
+        int index_1_1 = (y_1 + GRID_WIDTH_2) * GRID_WIDTH + x_1 + GRID_WIDTH_2;
+        if(i == GRID_NUM * 0.5)
+            std::cout << index_0_0 << ", " << index_0_1 << ", " << index_1_0 << ", " << index_1_1 << std::endl;
+
+        Eigen::Vector2d y_vec(y_0 + 1 - map_i(1), map_i(1) - y_0);
+        Eigen::Vector2d x_vec(x_0 + 1 - map_i(0), map_i(0) - x_0);
+        Eigen::Matrix2d value_mat;
+        value_mat << map[index_0_0].get_log_odds(), map[index_1_0].get_log_odds(),
+                     map[index_0_1].get_log_odds(), map[index_1_1].get_log_odds();
+
+        double ogm_value = y_vec.transpose() * value_mat * x_vec;
+        ogm[i].log_odds = ogm_value;
     }
     map.clear();
     map = ogm;
@@ -208,6 +241,11 @@ DynamicCloudDetector::GridCell::GridCell(void)
 double DynamicCloudDetector::GridCell::get_occupancy(void)
 {
     return 1.0 / (1 + exp(-log_odds));
+}
+
+double DynamicCloudDetector::GridCell::get_log_odds(void)
+{
+    return log_odds;
 }
 
 void DynamicCloudDetector::GridCell::add_log_odds(double lo)

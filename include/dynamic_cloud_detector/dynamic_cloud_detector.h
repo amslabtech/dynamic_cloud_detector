@@ -42,9 +42,11 @@ public:
     public:
         GridCell(void);
         double get_occupancy(void);
+        double get_log_odds(void);
         void add_log_odds(double);
-    private:
+
         double log_odds;
+    private:
     };
     typedef std::vector<GridCell> OccupancyGridMap;
 
