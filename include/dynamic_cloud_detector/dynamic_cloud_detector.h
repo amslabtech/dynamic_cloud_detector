@@ -8,7 +8,10 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
-#include <tf/tf.h>
+#include <tf2/utils.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_eigen/tf2_eigen.h>
 
 // Eigen
 #include <Eigen/Dense>
@@ -37,40 +40,31 @@ public:
     class GridCell
     {
     public:
-        GridCell(void)
-        {
-            clear_count = 0;
-            occupied_count = 0;
-            state = -1;
-        }
-
-        void update_state(const int);
+        GridCell(void);
         double get_occupancy(void);
-
-        int clear_count;
-        int occupied_count;
-        int state;// -1: unknown, 0: clear, 100: occupied
+        void add_log_odds(double);
     private:
+        double log_odds;
     };
+    typedef std::vector<GridCell> OccupancyGridMap;
 
     DynamicCloudDetector(void);
 
     void callback(const sensor_msgs::PointCloud2ConstPtr&, const nav_msgs::OdometryConstPtr&);
-    void input_cloud_to_grid_cells(const std::vector<CloudXYZIPtr>&, const std::vector<std::vector<double> >&, const std::vector<Eigen::Vector3d>&, std::vector<double>&);
+    void input_cloud_to_occupancy_grid_map(const CloudXYZIPtr&);
     void devide_cloud(const CloudXYZIPtr&, CloudXYZIPtr&, CloudXYZIPtr&);
-    void get_beam_list(const CloudXYZIPtr&, std::vector<double>&);
     int get_index_from_xy(const double, const double);
     int get_x_index_from_index(const int);
     int get_y_index_from_index(const int);
     double get_x_from_index(const int);
     double get_y_from_index(const int);
+    void publish_occupancy_grid_map(const ros::Time&, const std::string&);
+    std::string remove_first_slash(std::string);
+    bool is_valid_point(double, double);
+    void transform_occupancy_grid_map(const Eigen::Vector2d&, double, OccupancyGridMap&);
     void process(void);
 
 private:
-    static const int UNKNOWN = -1;
-    static const int CLEAR = 0;
-    static const int OCCUPIED = 100;
-
     double RESOLUTION;
     double WIDTH;
     double WIDTH_2;
@@ -78,13 +72,11 @@ private:
     int GRID_WIDTH_2;
     int GRID_NUM;
     double OCCUPANCY_THRESHOLD;
-    int BEAM_NUM;
-    int BUFFER_SIZE;
-    bool SKIP_SCAN_FLAG;
 
     ros::NodeHandle nh;
     ros::NodeHandle local_nh;
-    tf::TransformListener listener;
+    tf2_ros::Buffer tf_buffer;
+    tf2_ros::TransformListener listener;
 
     ros::Publisher dynamic_pub;
     ros::Publisher static_pub;
@@ -94,12 +86,7 @@ private:
     message_filters::Subscriber<nav_msgs::Odometry> odom_sub;
     message_filters::Synchronizer<sync_subs> sync;
 
-    std::vector<GridCell> grid_cells;
-    bool first_flag;
-    std::vector<CloudXYZIPtr> cloud_buffer;
-    std::vector<std::vector<double> > beam_buffer;
-    std::vector<Eigen::Vector3d> position_buffer;
-    std::vector<double> yaw_buffer;
+    OccupancyGridMap occupancy_grid_map;
 };
 
 #endif// __DYNAMIC_CLOUD_DETECTOR_H

@@ -28,7 +28,7 @@ int main(int argc, char** argv)
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
-    ros::Duration(3.0).sleep();
+    ros::Duration(1.0).sleep();
 
     int r_e_t = RUN_ALL_TESTS();
 
