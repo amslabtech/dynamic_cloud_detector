@@ -8,7 +8,7 @@ DynamicCloudDetector::DynamicCloudDetector(void)
 {
     local_nh.param("RESOLUTION", RESOLUTION, {0.05});
     local_nh.param("WIDTH", WIDTH, {40.0});
-    local_nh.param("OCCUPANCY_THRESHOLD", OCCUPANCY_THRESHOLD, {0.2});
+    local_nh.param("OCCUPANCY_THRESHOLD", OCCUPANCY_THRESHOLD, {0.5});
     local_nh.param("BEAM_NUM", BEAM_NUM, {720});
 
     GRID_WIDTH = WIDTH / RESOLUTION;
@@ -73,6 +73,15 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
 
     publish_occupancy_grid_map(msg_odom->header.stamp, base_frame_id);
 
+    CloudXYZIPtr dynamic_cloud_ptr(new CloudXYZI);
+    dynamic_cloud_ptr->header = cloud_ptr->header;
+    CloudXYZIPtr static_cloud_ptr(new CloudXYZI);
+    static_cloud_ptr->header = cloud_ptr->header;
+    devide_cloud(cloud_ptr, dynamic_cloud_ptr, static_cloud_ptr);
+
+    dynamic_pub.publish(dynamic_cloud_ptr);
+    static_pub.publish(static_cloud_ptr);
+
     last_odom_position = odom_position;
     last_yaw = yaw;
     std::cout << "time: " << ros::Time::now().toSec() - start_time << "[s]" << std::endl;
@@ -113,6 +122,21 @@ void DynamicCloudDetector::input_cloud_to_occupancy_grid_map(const CloudXYZIPtr&
 
 void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr& dynamic_cloud, CloudXYZIPtr& static_cloud)
 {
+    dynamic_cloud->points.clear();
+    static_cloud->points.clear();
+    for(const auto& pt : cloud->points){
+        if(-WIDTH_2 <= pt.x && pt.x <= WIDTH_2 && -WIDTH_2 <= pt.y && pt.y <= WIDTH_2){
+            int index = get_index_from_xy(pt.x, pt.y);
+            if(0 <= index && index < GRID_NUM){
+                double occupancy = occupancy_grid_map[index].get_occupancy();
+                if(occupancy < OCCUPANCY_THRESHOLD){
+                    dynamic_cloud->points.push_back(pt);
+                }else{
+                    static_cloud->points.push_back(pt);
+                }
+            }
+        }
+    }
 }
 
 int DynamicCloudDetector::get_index_from_xy(const double x, const double y)
