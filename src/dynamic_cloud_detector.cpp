@@ -105,7 +105,7 @@ void DynamicCloudDetector::input_cloud_to_occupancy_grid_map(const CloudXYZIPtr&
         double x = beam_list[i] * cos(direction);
         double y = beam_list[i] * sin(direction);
         if(is_valid_point(x, y)){
-            occupancy_grid_map[get_index_from_xy(x, y)].add_log_odds(0.5);
+            occupancy_grid_map[get_index_from_xy(x, y)].add_log_odds(0.15);
         }
     }
     set_clear_grid_cells(beam_list, occupancy_grid_map);
@@ -239,14 +239,16 @@ void DynamicCloudDetector::transform_occupancy_grid_map(const Eigen::Vector2d& t
         if(i == show_i)
             std::cout << index_0_0 << ", " << index_0_1 << ", " << index_1_0 << ", " << index_1_1 << std::endl;
 
-        Eigen::Vector2d y_vec(y_0 + 1 - map_i(1), map_i(1) - y_0);
-        Eigen::Vector2d x_vec(x_0 + 1 - map_i(0), map_i(0) - x_0);
+        Eigen::Vector2d y_vec(y_1 - map_i(1), map_i(1) - y_0);
+        Eigen::Vector2d x_vec(x_1 - map_i(0), map_i(0) - x_0);
         Eigen::Matrix2d value_mat;
-        value_mat << map[index_0_0].get_log_odds(), map[index_1_0].get_log_odds(),
-                     map[index_0_1].get_log_odds(), map[index_1_1].get_log_odds();
+        // value_mat << map[index_0_0].get_log_odds(), map[index_1_0].get_log_odds(),
+        //              map[index_0_1].get_log_odds(), map[index_1_1].get_log_odds();
+        value_mat << map[index_0_0].get_occupancy(), map[index_1_0].get_occupancy(),
+                     map[index_0_1].get_occupancy(), map[index_1_1].get_occupancy();
 
         double ogm_value = y_vec.transpose() * value_mat * x_vec;
-        ogm[i].log_odds = ogm_value;
+        ogm[i].log_odds = std::log(ogm_value / (1 - ogm_value));
         if(i == show_i)
             std::cout << "\033[31m" << ogm_value << "\033[0m" << std::endl;
     }
