@@ -202,26 +202,21 @@ void DynamicCloudDetector::transform_occupancy_grid_map(const Eigen::Vector2d& t
     std::cout << "reversed affine:\n" << affine_inverse << std::endl;
 
     OccupancyGridMap ogm(GRID_NUM);
+    int show_i = GRID_NUM * 0.5 + GRID_WIDTH - 1;
     for(int i=0;i<GRID_NUM;i++){
-        if(i == GRID_NUM * 0.5)
+        if(i == show_i)
             std::cout << "i: " << i << std::endl;
         double x_i = get_x_index_from_index(i) - GRID_WIDTH_2;
         double y_i = get_y_index_from_index(i) - GRID_WIDTH_2;
         Eigen::Vector3d ogm_i(x_i, y_i, 1);
-        if(i == GRID_NUM * 0.5)
+        if(i == show_i)
             std::cout << "ogm_i.transpose(): " << ogm_i.transpose() << std::endl;
-        if(i == GRID_NUM * 0.5)
+        if(i == show_i)
             std::cout << x_i * RESOLUTION << ", " << y_i * RESOLUTION << std::endl;
         Eigen::Vector3d map_i = affine_inverse * ogm_i;
-        if(i == GRID_NUM * 0.5)
+        if(i == show_i)
             std::cout << "map_i.transpose(): " << map_i.transpose() << std::endl;
-        if(map_i(0) < -GRID_WIDTH_2 || GRID_WIDTH_2 <= map_i(0)){
-            continue;
-        }
-        if(map_i(1) < -GRID_WIDTH_2 || GRID_WIDTH_2 <= map_i(1)){
-            continue;
-        }
-        if(i == GRID_NUM * 0.5)
+        if(i == show_i)
             std::cout << map_i(0) * RESOLUTION << ", " << map_i(1) * RESOLUTION << std::endl;
 
         // bilinear interpolation
@@ -229,11 +224,19 @@ void DynamicCloudDetector::transform_occupancy_grid_map(const Eigen::Vector2d& t
         int x_1 = x_0 + 1;
         int y_0 = std::floor(map_i(1));
         int y_1 = y_0 + 1;
+        if(i == show_i)
+            std::cout << x_0 << ", " << x_1 << ", " << y_0 << ", " << y_1 << std::endl;
+        if(x_0 <= -GRID_WIDTH_2 || GRID_WIDTH_2 <= x_1){
+            continue;
+        }
+        if(y_0 <= -GRID_WIDTH_2 || GRID_WIDTH_2 <= y_1){
+            continue;
+        }
         int index_0_0 = (y_0 + GRID_WIDTH_2) * GRID_WIDTH + x_0 + GRID_WIDTH_2;
         int index_0_1 = (y_1 + GRID_WIDTH_2) * GRID_WIDTH + x_0 + GRID_WIDTH_2;
         int index_1_0 = (y_0 + GRID_WIDTH_2) * GRID_WIDTH + x_1 + GRID_WIDTH_2;
         int index_1_1 = (y_1 + GRID_WIDTH_2) * GRID_WIDTH + x_1 + GRID_WIDTH_2;
-        if(i == GRID_NUM * 0.5)
+        if(i == show_i)
             std::cout << index_0_0 << ", " << index_0_1 << ", " << index_1_0 << ", " << index_1_1 << std::endl;
 
         Eigen::Vector2d y_vec(y_0 + 1 - map_i(1), map_i(1) - y_0);
@@ -244,6 +247,8 @@ void DynamicCloudDetector::transform_occupancy_grid_map(const Eigen::Vector2d& t
 
         double ogm_value = y_vec.transpose() * value_mat * x_vec;
         ogm[i].log_odds = ogm_value;
+        if(i == show_i)
+            std::cout << "\033[31m" << ogm_value << "\033[0m" << std::endl;
     }
     map.clear();
     map = ogm;
