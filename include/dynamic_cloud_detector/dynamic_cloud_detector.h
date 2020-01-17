@@ -64,6 +64,7 @@ public:
     std::string remove_first_slash(std::string);
     bool is_valid_point(double, double);
     void transform_occupancy_grid_map(const Eigen::Vector2d&, double, OccupancyGridMap&);
+    void set_clear_grid_cells(const std::vector<double>&, OccupancyGridMap&);
     void process(void);
 
 private:
@@ -74,6 +75,7 @@ private:
     int GRID_WIDTH_2;
     int GRID_NUM;
     double OCCUPANCY_THRESHOLD;
+    int BEAM_NUM;
 
     ros::NodeHandle nh;
     ros::NodeHandle local_nh;

@@ -9,6 +9,7 @@ DynamicCloudDetector::DynamicCloudDetector(void)
     local_nh.param("RESOLUTION", RESOLUTION, {0.05});
     local_nh.param("WIDTH", WIDTH, {40.0});
     local_nh.param("OCCUPANCY_THRESHOLD", OCCUPANCY_THRESHOLD, {0.2});
+    local_nh.param("BEAM_NUM", BEAM_NUM, {720});
 
     GRID_WIDTH = WIDTH / RESOLUTION;
     GRID_NUM = GRID_WIDTH * GRID_WIDTH;
@@ -80,14 +81,34 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
 void DynamicCloudDetector::input_cloud_to_occupancy_grid_map(const CloudXYZIPtr& cloud_ptr)
 {
     std::cout << "--- input cloud to occupancy grid map ---" << std::endl;
+    std::vector<double>beam_list(BEAM_NUM, sqrt(2) * WIDTH_2);
+    const double BEAM_ANGLE_RESOLUTION = 2.0 * M_PI / (double)BEAM_NUM;
+
+    // occupancy_grid_map.clear();
+    // occupancy_grid_map.resize(GRID_NUM);
     int cloud_size = cloud_ptr->points.size();
     for(int i=0;i<cloud_size;i++){
         auto p = cloud_ptr->points[i];
         if(!is_valid_point(p.x, p.y)){
             continue;
         }
-        occupancy_grid_map[get_index_from_xy(p.x, p.y)].add_log_odds(1.0);
+        // occupancy_grid_map[get_index_from_xy(p.x, p.y)].add_log_odds(0.01);
+        double distance = sqrt(p.x * p.x + p.y * p.y);
+        double direction = atan2(p.y, p.x);
+        int beam_index = (direction + M_PI) / BEAM_ANGLE_RESOLUTION;
+        if(0 <= beam_index && beam_index < BEAM_NUM){
+            beam_list[beam_index] = std::min(beam_list[beam_index], distance);
+        }
     }
+    for(int i=0;i<BEAM_NUM;i++){
+        double direction = i * BEAM_ANGLE_RESOLUTION - M_PI;
+        double x = beam_list[i] * cos(direction);
+        double y = beam_list[i] * sin(direction);
+        if(is_valid_point(x, y)){
+            occupancy_grid_map[get_index_from_xy(x, y)].add_log_odds(0.5);
+        }
+    }
+    set_clear_grid_cells(beam_list, occupancy_grid_map);
 }
 
 void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr& dynamic_cloud, CloudXYZIPtr& static_cloud)
@@ -226,6 +247,27 @@ void DynamicCloudDetector::transform_occupancy_grid_map(const Eigen::Vector2d& t
     }
     map.clear();
     map = ogm;
+}
+
+void DynamicCloudDetector::set_clear_grid_cells(const std::vector<double>& beam_list, OccupancyGridMap& map)
+{
+    const double BEAM_ANGLE_RESOLUTION = 2.0 * M_PI / (double)BEAM_NUM;
+    for(int i=0;i<BEAM_NUM;i++){
+        double direction = i * BEAM_ANGLE_RESOLUTION - M_PI;
+        direction = atan2(sin(direction), cos(direction));
+        // std::cout << i << ": " << direction << ", " << beam_list[i] << std::endl;
+        double c = cos(direction);
+        double s = sin(direction);
+        for(double range=0.0;range<beam_list[i];range+=RESOLUTION){
+            double x = range * c;
+            double y = range * s;
+            if(is_valid_point(x, y)){
+                map[get_index_from_xy(x, y)].add_log_odds(-0.02);
+            }else{
+                break;
+            }
+        }
+    }
 }
 
 void DynamicCloudDetector::process(void)
