@@ -3,10 +3,9 @@
 <launch>
 
     <arg name="width" default="40.0"/>
-    <arg name="resolution" default="0.25"/>
+    <arg name="resolution" default="0.2"/>
     <arg name="occupancy_threshold" default="0.2"/>
     <arg name="beam_num" default="720"/>
-    <arg name="buffer_size" default="40"/>
     <arg name="skip_scan_flag" default="false"/>
 
     <node pkg="dynamic_cloud_detector" type="dynamic_cloud_detector" name="dynamic_cloud_detector">
@@ -14,7 +13,6 @@
         <param name="RESOLUTION" value="$(arg resolution)"/>
         <param name="OCCUPANCY_THRESHOLD" value="$(arg occupancy_threshold)"/>
         <param name="BEAM_NUM" value="$(arg beam_num)"/>
-        <param name="BUFFER_SIZE" value="$(arg buffer_size)"/>
         <param name="SKIP_SCAN_FLAG" value="$(arg skip_scan_flag)"/>
     </node>
 

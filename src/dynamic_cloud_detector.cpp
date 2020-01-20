@@ -6,9 +6,9 @@ DynamicCloudDetector::DynamicCloudDetector(void)
 , obstacles_cloud_sub(nh, "/velodyne_obstacles", 10), odom_sub(nh, "/odom/complement", 10)
 , sync(sync_subs(10), obstacles_cloud_sub, odom_sub)
 {
-    local_nh.param("RESOLUTION", RESOLUTION, {0.05});
+    local_nh.param("RESOLUTION", RESOLUTION, {0.2});
     local_nh.param("WIDTH", WIDTH, {40.0});
-    local_nh.param("OCCUPANCY_THRESHOLD", OCCUPANCY_THRESHOLD, {0.5});
+    local_nh.param("OCCUPANCY_THRESHOLD", OCCUPANCY_THRESHOLD, {0.2});
     local_nh.param("BEAM_NUM", BEAM_NUM, {720});
 
     GRID_WIDTH = WIDTH / RESOLUTION;
@@ -118,11 +118,11 @@ void DynamicCloudDetector::input_cloud_to_occupancy_grid_map(const CloudXYZIPtr&
 
     for(int i=0;i<GRID_NUM;i++){
         if(obstacle_indices[i]){
-            occupancy_grid_map[i].add_log_odds(0.15);
+            occupancy_grid_map[i].add_log_odds(0.4);
         }
     }
 
-    set_clear_grid_cells(beam_list, occupancy_grid_map);
+    set_clear_grid_cells(beam_list, obstacle_indices, occupancy_grid_map);
 }
 
 void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr& dynamic_cloud, CloudXYZIPtr& static_cloud)
@@ -288,7 +288,7 @@ void DynamicCloudDetector::transform_occupancy_grid_map(const Eigen::Vector2d& t
     map = ogm;
 }
 
-void DynamicCloudDetector::set_clear_grid_cells(const std::vector<double>& beam_list, OccupancyGridMap& map)
+void DynamicCloudDetector::set_clear_grid_cells(const std::vector<double>& beam_list, const std::vector<bool>& obstacle_indices, OccupancyGridMap& map)
 {
     const double BEAM_ANGLE_RESOLUTION = 2.0 * M_PI / (double)BEAM_NUM;
     for(int i=0;i<BEAM_NUM;i++){
@@ -301,7 +301,12 @@ void DynamicCloudDetector::set_clear_grid_cells(const std::vector<double>& beam_
             double x = range * c;
             double y = range * s;
             if(is_valid_point(x, y)){
-                map[get_index_from_xy(x, y)].add_log_odds(-0.02);
+                int index = get_index_from_xy(x, y);
+                if(!obstacle_indices[index]){
+                    map[index].add_log_odds(-0.2);
+                }else{
+                    break;
+                }
             }else{
                 break;
             }

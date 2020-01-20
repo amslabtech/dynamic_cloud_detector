@@ -64,7 +64,7 @@ public:
     std::string remove_first_slash(std::string);
     bool is_valid_point(double, double);
     void transform_occupancy_grid_map(const Eigen::Vector2d&, double, OccupancyGridMap&);
-    void set_clear_grid_cells(const std::vector<double>&, OccupancyGridMap&);
+    void set_clear_grid_cells(const std::vector<double>&, const std::vector<bool>&, OccupancyGridMap&);
     void process(void);
 
 private:
