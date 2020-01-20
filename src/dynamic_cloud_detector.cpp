@@ -96,6 +96,7 @@ void DynamicCloudDetector::input_cloud_to_occupancy_grid_map(const CloudXYZIPtr&
     // occupancy_grid_map.clear();
     // occupancy_grid_map.resize(GRID_NUM);
     int cloud_size = cloud_ptr->points.size();
+    std::vector<bool> obstacle_indices(GRID_NUM, false);
     for(int i=0;i<cloud_size;i++){
         auto p = cloud_ptr->points[i];
         if(!is_valid_point(p.x, p.y)){
@@ -108,15 +109,19 @@ void DynamicCloudDetector::input_cloud_to_occupancy_grid_map(const CloudXYZIPtr&
         if(0 <= beam_index && beam_index < BEAM_NUM){
             beam_list[beam_index] = std::min(beam_list[beam_index], distance);
         }
+        int index = get_index_from_xy(p.x, p.y);
+        if(index < 0 || GRID_NUM <= index){
+            continue;
+        }
+        obstacle_indices[get_index_from_xy(p.x, p.y)] = true;
     }
-    for(int i=0;i<BEAM_NUM;i++){
-        double direction = i * BEAM_ANGLE_RESOLUTION - M_PI;
-        double x = beam_list[i] * cos(direction);
-        double y = beam_list[i] * sin(direction);
-        if(is_valid_point(x, y)){
-            occupancy_grid_map[get_index_from_xy(x, y)].add_log_odds(0.15);
+
+    for(int i=0;i<GRID_NUM;i++){
+        if(obstacle_indices[i]){
+            occupancy_grid_map[i].add_log_odds(0.15);
         }
     }
+
     set_clear_grid_cells(beam_list, occupancy_grid_map);
 }
 
