@@ -201,7 +201,10 @@ std::string DynamicCloudDetector::remove_first_slash(std::string frame_id)
 
 bool DynamicCloudDetector::is_valid_point(double x, double y)
 {
+    int index = get_index_from_xy(x, y);
     if(x < -WIDTH_2 || x > WIDTH_2 || y < -WIDTH_2 || y > WIDTH_2){
+        return false;
+    }else if(index < 0 || GRID_NUM <= index){
         return false;
     }else{
         return true;
