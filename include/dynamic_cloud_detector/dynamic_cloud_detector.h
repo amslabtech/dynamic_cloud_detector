@@ -33,9 +33,9 @@
 class DynamicCloudDetector
 {
 public:
-    typedef pcl::PointXYZI PointXYZI;
-    typedef pcl::PointCloud<PointXYZI> CloudXYZI;
-    typedef pcl::PointCloud<PointXYZI>::Ptr CloudXYZIPtr;
+    typedef pcl::PointXYZINormal PointXYZIN;
+    typedef pcl::PointCloud<PointXYZIN> CloudXYZIN;
+    typedef pcl::PointCloud<PointXYZIN>::Ptr CloudXYZINPtr;
 
     class GridCell
     {
@@ -53,8 +53,8 @@ public:
     DynamicCloudDetector(void);
 
     void callback(const sensor_msgs::PointCloud2ConstPtr&, const nav_msgs::OdometryConstPtr&);
-    void input_cloud_to_occupancy_grid_map(const CloudXYZIPtr&);
-    void devide_cloud(const CloudXYZIPtr&, CloudXYZIPtr&, CloudXYZIPtr&);
+    void input_cloud_to_occupancy_grid_map(const CloudXYZINPtr&);
+    void devide_cloud(const CloudXYZINPtr&, CloudXYZINPtr&, CloudXYZINPtr&);
     int get_index_from_xy(const double, const double);
     int get_x_index_from_index(const int);
     int get_y_index_from_index(const int);

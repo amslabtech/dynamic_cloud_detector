@@ -39,7 +39,7 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
     static double last_yaw = tf2::getYaw(msg_odom->pose.pose.orientation);
 
     std::cout << "--- callback ---" << std::endl;
-    CloudXYZIPtr cloud_ptr(new CloudXYZI);
+    CloudXYZINPtr cloud_ptr(new CloudXYZIN);
     pcl::fromROSMsg(*msg_obstacles_cloud, *cloud_ptr);
 
     std::cout << "received cloud size: " << cloud_ptr->points.size() << std::endl;
@@ -73,9 +73,9 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
 
     publish_occupancy_grid_map(msg_odom->header.stamp, base_frame_id);
 
-    CloudXYZIPtr dynamic_cloud_ptr(new CloudXYZI);
+    CloudXYZINPtr dynamic_cloud_ptr(new CloudXYZIN);
     dynamic_cloud_ptr->header = cloud_ptr->header;
-    CloudXYZIPtr static_cloud_ptr(new CloudXYZI);
+    CloudXYZINPtr static_cloud_ptr(new CloudXYZIN);
     static_cloud_ptr->header = cloud_ptr->header;
     devide_cloud(cloud_ptr, dynamic_cloud_ptr, static_cloud_ptr);
 
@@ -87,7 +87,7 @@ void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_
     std::cout << "time: " << ros::Time::now().toSec() - start_time << "[s]" << std::endl;
 }
 
-void DynamicCloudDetector::input_cloud_to_occupancy_grid_map(const CloudXYZIPtr& cloud_ptr)
+void DynamicCloudDetector::input_cloud_to_occupancy_grid_map(const CloudXYZINPtr& cloud_ptr)
 {
     std::cout << "--- input cloud to occupancy grid map ---" << std::endl;
     std::vector<double>beam_list(BEAM_NUM, sqrt(2) * WIDTH_2);
@@ -125,7 +125,7 @@ void DynamicCloudDetector::input_cloud_to_occupancy_grid_map(const CloudXYZIPtr&
     set_clear_grid_cells(beam_list, obstacle_indices, occupancy_grid_map);
 }
 
-void DynamicCloudDetector::devide_cloud(const CloudXYZIPtr& cloud, CloudXYZIPtr& dynamic_cloud, CloudXYZIPtr& static_cloud)
+void DynamicCloudDetector::devide_cloud(const CloudXYZINPtr& cloud, CloudXYZINPtr& dynamic_cloud, CloudXYZINPtr& static_cloud)
 {
     dynamic_cloud->points.clear();
     static_cloud->points.clear();
