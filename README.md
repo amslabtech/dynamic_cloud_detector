@@ -3,7 +3,9 @@
 [![Build Status](https://travis-ci.org/amslabtech/dynamic_cloud_detector.svg?branch=master)](https://travis-ci.org/amslabtech/dynamic_cloud_detector)
 
 ## Overview
-TBW
+The white and red point clouds are determined to be static and dynamic, respectively.
+
+The color of the map indicates occupancy; the blacker the area, the higher the occupancy.
 
 ![demo](gif/dynamic_cloud_detector.gif)
 
