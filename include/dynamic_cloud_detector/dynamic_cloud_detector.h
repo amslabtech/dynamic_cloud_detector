@@ -68,29 +68,29 @@ public:
     void process(void);
 
 private:
-    double RESOLUTION;
-    double WIDTH;
-    double WIDTH_2;
-    int GRID_WIDTH;
-    int GRID_WIDTH_2;
-    int GRID_NUM;
-    double OCCUPANCY_THRESHOLD;
-    int BEAM_NUM;
+    double RESOLUTION_;
+    double WIDTH_;
+    double WIDTH_2_;
+    int GRID_WIDTH_;
+    int GRID_WIDTH_2_;
+    int GRID_NUM_;
+    double OCCUPANCY_THRESHOLD_;
+    int BEAM_NUM_;
 
-    ros::NodeHandle nh;
-    ros::NodeHandle local_nh;
-    tf2_ros::Buffer tf_buffer;
-    tf2_ros::TransformListener listener;
+    ros::NodeHandle nh_;
+    ros::NodeHandle local_nh_;
+    tf2_ros::Buffer tf_buffer_;
+    tf2_ros::TransformListener listener_;
 
-    ros::Publisher dynamic_pub;
-    ros::Publisher static_pub;
-    ros::Publisher grid_pub;
+    ros::Publisher dynamic_pub_;
+    ros::Publisher static_pub_;
+    ros::Publisher grid_pub_;
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::PointCloud2, nav_msgs::Odometry> sync_subs;
-    message_filters::Subscriber<sensor_msgs::PointCloud2> obstacles_cloud_sub;
-    message_filters::Subscriber<nav_msgs::Odometry> odom_sub;
-    message_filters::Synchronizer<sync_subs> sync;
+    message_filters::Subscriber<sensor_msgs::PointCloud2> obstacles_cloud_sub_;
+    message_filters::Subscriber<nav_msgs::Odometry> odom_sub_;
+    message_filters::Synchronizer<sync_subs> sync_;
 
-    OccupancyGridMap occupancy_grid_map;
+    OccupancyGridMap occupancy_grid_map_;
 };
 
 #endif// __DYNAMIC_CLOUD_DETECTOR_H
