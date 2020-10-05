@@ -7,6 +7,8 @@
     <arg name="occupancy_threshold" default="0.2"/>
     <arg name="beam_num" default="720"/>
     <arg name="skip_scan_flag" default="false"/>
+    <arg name="log_odds_increase" default="0.4"/>
+    <arg name="log_odds_decrease" default="0.2"/>
 
     <node pkg="dynamic_cloud_detector" type="dynamic_cloud_detector" name="dynamic_cloud_detector">
         <param name="width" value="$(arg width)"/>
@@ -14,6 +16,8 @@
         <param name="occupancy_threshold" value="$(arg occupancy_threshold)"/>
         <param name="beam_num" value="$(arg beam_num)"/>
         <param name="skip_scan_flag" value="$(arg skip_scan_flag)"/>
+        <param name="log_odds_increase" value="$(arg log_odds_increase)"/>
+        <param name="log_odds_decrease" value="$(arg log_odds_decrease)"/>
     </node>
 
 </launch>

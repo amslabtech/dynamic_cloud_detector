@@ -10,6 +10,8 @@ DynamicCloudDetector::DynamicCloudDetector(void)
     local_nh_.param("width", width_, {40.0});
     local_nh_.param("occupancy_threshold", occupancy_threshold_, {0.2});
     local_nh_.param("beam_num", beam_num_, {720});
+    local_nh_.param("log_odds_increase", log_odds_increase_, {0.4});
+    local_nh_.param("log_odds_decrease", log_odds_decrease_, {0.2});
 
     grid_width_ = width_ / resolution_;
     grid_num_ = grid_width_ * grid_width_;
@@ -30,6 +32,8 @@ DynamicCloudDetector::DynamicCloudDetector(void)
     std::cout << "width_2: " << width_2_ << std::endl;
     std::cout << "grid_num: " << grid_num_ << std::endl;
     std::cout << "occupancy_threshold: " << occupancy_threshold_ << std::endl;
+    std::cout << "log_odds_increase: " << log_odds_increase_ << std::endl;
+    std::cout << "log_odds_decrease: " << log_odds_decrease_ << std::endl;
 }
 
 void DynamicCloudDetector::callback(const sensor_msgs::PointCloud2ConstPtr& msg_obstacles_cloud, const nav_msgs::OdometryConstPtr& msg_odom)
@@ -118,7 +122,7 @@ void DynamicCloudDetector::input_cloud_to_occupancy_grid_map(const CloudXYZINPtr
 
     for(int i=0;i<grid_num_;i++){
         if(obstacle_indices[i]){
-            occupancy_grid_map_[i].add_log_odds(0.4);
+            occupancy_grid_map_[i].add_log_odds(log_odds_increase_);
         }
     }
 
@@ -303,7 +307,7 @@ void DynamicCloudDetector::set_clear_grid_cells(const std::vector<double>& beam_
             if(is_valid_point(x, y)){
                 const int index = get_index_from_xy(x, y);
                 if(!obstacle_indices[index]){
-                    map[index].add_log_odds(-0.2);
+                    map[index].add_log_odds(-log_odds_decrease_);
                 }else{
                     break;
                 }

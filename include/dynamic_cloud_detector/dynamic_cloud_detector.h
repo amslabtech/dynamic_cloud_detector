@@ -76,6 +76,8 @@ private:
     int grid_num_;
     double occupancy_threshold_;
     int beam_num_;
+    double log_odds_increase_;
+    double log_odds_decrease_;
 
     ros::NodeHandle nh_;
     ros::NodeHandle local_nh_;
