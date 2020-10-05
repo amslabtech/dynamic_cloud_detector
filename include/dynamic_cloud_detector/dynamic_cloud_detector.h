@@ -68,14 +68,14 @@ public:
     void process(void);
 
 private:
-    double RESOLUTION_;
-    double WIDTH_;
-    double WIDTH_2_;
-    int GRID_WIDTH_;
-    int GRID_WIDTH_2_;
-    int GRID_NUM_;
-    double OCCUPANCY_THRESHOLD_;
-    int BEAM_NUM_;
+    double resolution_;
+    double width_;
+    double width_2_;
+    int grid_width_;
+    int grid_width_2_;
+    int grid_num_;
+    double occupancy_threshold_;
+    int beam_num_;
 
     ros::NodeHandle nh_;
     ros::NodeHandle local_nh_;
