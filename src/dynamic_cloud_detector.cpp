@@ -262,10 +262,10 @@ void DynamicCloudDetector::transform_occupancy_grid_map(const Eigen::Vector2d& t
         const int y_1 = y_0 + 1;
         // if(i == show_i)
         //     std::cout << x_0 << ", " << x_1 << ", " << y_0 << ", " << y_1 << std::endl;
-        if(x_0 <= -grid_width_2_ || grid_width_2_ <= x_1){
+        if(x_0 < -grid_width_2_ || grid_width_2_ <= x_1){
             continue;
         }
-        if(y_0 <= -grid_width_2_ || grid_width_2_ <= y_1){
+        if(y_0 < -grid_width_2_ || grid_width_2_ <= y_1){
             continue;
         }
         const int index_0_0 = (y_0 + grid_width_2_) * grid_width_ + x_0 + grid_width_2_;
