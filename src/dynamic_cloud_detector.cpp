@@ -148,23 +148,6 @@ void DynamicCloudDetector::devide_cloud(const CloudXYZINPtr& cloud, CloudXYZINPt
     }
 }
 
-int DynamicCloudDetector::get_index_from_xy(const double x, const double y)
-{
-    const int _x = floor(x / resolution_ + 0.5) + grid_width_2_;
-    const int _y = floor(y / resolution_ + 0.5) + grid_width_2_;
-    return _y * grid_width_ + _x;
-}
-
-int DynamicCloudDetector::get_x_index_from_index(const int index)
-{
-    return index % grid_width_;
-}
-
-int DynamicCloudDetector::get_y_index_from_index(const int index)
-{
-    return index / grid_width_;
-}
-
 double DynamicCloudDetector::get_x_from_index(const int index)
 {
     return (get_x_index_from_index(index) - grid_width_2_) * resolution_;
@@ -201,18 +184,6 @@ std::string DynamicCloudDetector::remove_first_slash(std::string frame_id)
         frame_id.erase(0, 1);
     }
     return frame_id;
-}
-
-bool DynamicCloudDetector::is_valid_point(double x, double y)
-{
-    const int index = get_index_from_xy(x, y);
-    if(x < -width_2_ || x > width_2_ || y < -width_2_ || y > width_2_){
-        return false;
-    }else if(index < 0 || grid_num_ <= index){
-        return false;
-    }else{
-        return true;
-    }
 }
 
 void DynamicCloudDetector::transform_occupancy_grid_map(const Eigen::Vector2d& translation, double diff_yaw, OccupancyGridMap& map)
@@ -327,24 +298,4 @@ void DynamicCloudDetector::set_clear_grid_cells(const std::vector<double>& beam_
 void DynamicCloudDetector::process(void)
 {
     ros::spin();
-}
-
-DynamicCloudDetector::GridCell::GridCell(void)
-{
-    log_odds = 0;
-}
-
-double DynamicCloudDetector::GridCell::get_occupancy(void)
-{
-    return 1.0 / (1 + exp(-log_odds));
-}
-
-double DynamicCloudDetector::GridCell::get_log_odds(void)
-{
-    return log_odds;
-}
-
-void DynamicCloudDetector::GridCell::add_log_odds(double lo)
-{
-    log_odds += lo;
 }

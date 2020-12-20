@@ -40,10 +40,22 @@ public:
     class GridCell
     {
     public:
-        GridCell(void);
-        double get_occupancy(void);
-        double get_log_odds(void);
-        void add_log_odds(double);
+        GridCell(void)
+        {
+            log_odds = 0;
+        }
+        double get_occupancy(void)
+        {
+            return 1.0 / (1 + exp(-log_odds));
+        }
+        double get_log_odds(void)
+        {
+            return log_odds;
+        }
+        void add_log_odds(double lo)
+        {
+            log_odds += lo;
+        }
 
         double log_odds;
     private:
@@ -55,14 +67,35 @@ public:
     void callback(const sensor_msgs::PointCloud2ConstPtr&, const nav_msgs::OdometryConstPtr&);
     void input_cloud_to_occupancy_grid_map(const CloudXYZINPtr&);
     void devide_cloud(const CloudXYZINPtr&, CloudXYZINPtr&, CloudXYZINPtr&);
-    int get_index_from_xy(const double, const double);
-    int get_x_index_from_index(const int);
-    int get_y_index_from_index(const int);
+    int get_index_from_xy(const double x, const double y)
+    {
+        const int _x = floor(x / resolution_ + 0.5) + grid_width_2_;
+        const int _y = floor(y / resolution_ + 0.5) + grid_width_2_;
+        return _y * grid_width_ + _x;
+    }
+    int get_x_index_from_index(const int index)
+    {
+        return index % grid_width_;
+    }
+    int get_y_index_from_index(const int index)
+    {
+        return index / grid_width_;
+    }
     double get_x_from_index(const int);
     double get_y_from_index(const int);
     void publish_occupancy_grid_map(const ros::Time&, const std::string&);
     std::string remove_first_slash(std::string);
-    bool is_valid_point(double, double);
+    bool is_valid_point(double x, double y)
+    {
+        const int index = get_index_from_xy(x, y);
+        if(x < -width_2_ || x > width_2_ || y < -width_2_ || y > width_2_){
+            return false;
+        }else if(index < 0 || grid_num_ <= index){
+            return false;
+        }else{
+            return true;
+        }
+    }
     void transform_occupancy_grid_map(const Eigen::Vector2d&, double, OccupancyGridMap&);
     void set_clear_grid_cells(const std::vector<double>&, const std::vector<bool>&, OccupancyGridMap&);
     void process(void);
