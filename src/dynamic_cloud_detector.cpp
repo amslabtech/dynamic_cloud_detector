@@ -294,6 +294,7 @@ void DynamicCloudDetector::transform_occupancy_grid_map(const Eigen::Vector2d& t
 
 void DynamicCloudDetector::set_clear_grid_cells(const std::vector<double>& beam_list, const std::vector<bool>& obstacle_indices, OccupancyGridMap& map)
 {
+    std::vector<bool> clear_indices(grid_num_, false);
     const double beam_angle_resolution = 2.0 * M_PI / (double)beam_num_;
     for(int i=0;i<beam_num_;i++){
         double direction = i * beam_angle_resolution - M_PI;
@@ -307,13 +308,18 @@ void DynamicCloudDetector::set_clear_grid_cells(const std::vector<double>& beam_
             if(is_valid_point(x, y)){
                 const int index = get_index_from_xy(x, y);
                 if(!obstacle_indices[index]){
-                    map[index].add_log_odds(-log_odds_decrease_);
+                    clear_indices[index] = true;
                 }else{
                     break;
                 }
             }else{
                 break;
             }
+        }
+    }
+    for(int i=0;i<grid_num_;++i){
+        if(clear_indices[i]){
+            map[i].add_log_odds(-log_odds_decrease_);
         }
     }
 }
