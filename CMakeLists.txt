@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_filters
   tf2
   tf2_ros
+  tf2_eigen
 )
 
 ## System dependencies are found with CMake's conventions
