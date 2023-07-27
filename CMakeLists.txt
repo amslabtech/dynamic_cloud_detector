@@ -226,6 +226,11 @@ target_link_libraries(dynamic_cloud_detector
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 if(CATKIN_ENABLE_TESTING)
+  find_package(roslint REQUIRED)
+  set(ROSLINT_CPP_OPTS "--filter=-build/c++11,-runtime/references")
+  roslint_cpp()
+  roslint_add_test()
+
   find_package(rostest REQUIRED)
   add_rostest_gtest(dynamic_cloud_detector_test
     test/dynamic_cloud_detector.test
@@ -237,3 +242,4 @@ if(CATKIN_ENABLE_TESTING)
     libdynamic_cloud_detector
   )
 endif()
+
