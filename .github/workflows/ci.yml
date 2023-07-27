@@ -22,4 +22,3 @@ jobs:
         uses: ros-tooling/action-ros-ci@v0.3
         with:
           target-ros1-distro: noetic
-          vcs-repo-file-url: .rosinstall
