@@ -56,9 +56,10 @@
   <depend>tf2_ros</depend>
   <depend>tf2_eigen</depend>
   <depend>sensor_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>pcl_ros</depend>
   <depend>message_filters</depend>
   <depend>libeigen3-dev</depend>
-  <depend>libpcl-all-dev</depend>
   <test_depend>rostest</test_depend>
   <test_depend>roslint</test_depend>
 
