@@ -65,7 +65,7 @@ void DynamicCloudDetector::callback(
   try
   {
     geometry_msgs::TransformStamped transform;
-    transform = tf_buffer_.lookupTransform(base_frame_id, sensor_frame_id, ros::Time(0));
+    transform = tf_buffer_.lookupTransform(base_frame_id, sensor_frame_id, msg_obstacles_cloud->header.stamp);
     const Eigen::Matrix4d mat = tf2::transformToEigen(transform.transform).matrix().cast<double>();
     pcl::transformPointCloud(*cloud_ptr, *cloud_ptr, mat);
     cloud_ptr->header.frame_id = base_frame_id;
